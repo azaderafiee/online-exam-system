@@ -2,195 +2,120 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>کاربران در انتظار</title>
+    <title>کاربران در انتظار تأیید</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: 'Vazirmatn', sans-serif; background: #f5f5f5; }
-        .navbar { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .sidebar { background: white; min-height: calc(100vh - 56px); box-shadow: 2px 0 5px rgba(0,0,0,0.1); padding: 20px 0; }
-        .sidebar a { color: #333; text-decoration: none; padding: 12px 20px; display: block; transition: all 0.3s; }
-        .sidebar a:hover { background: #f8f9fa; color: #667eea; padding-right: 25px; }
-        .sidebar a.active { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); color: white; }
         .table-card { background: white; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; }
     </style>
 </head>
 <body>
-<!-- همان Navbar -->
-<nav class="navbar navbar-expand-lg navbar-light">
+<nav class="navbar navbar-light bg-white shadow-sm">
     <div class="container-fluid">
         <a class="navbar-brand" href="/admin/dashboard">
             <i class="fas fa-graduation-cap text-primary"></i> پنل مدیریت
         </a>
-        <ul class="navbar-nav ms-auto">
-            <li class="nav-item">
-                <form th:action="@{/logout}" method="post">
-                    <button type="submit" class="btn btn-link nav-link">
-                        <i class="fas fa-sign-out-alt"></i> خروج
-                    </button>
-                </form>
-            </li>
-        </ul>
     </div>
 </nav>
 
-<div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block sidebar">
-            <a href="/admin/dashboard">
-                <i class="fas fa-tachometer-alt"></i> داشبورد
-            </a>
-            <a href="/admin/users">
-                <i class="fas fa-users"></i> مدیریت کاربران
-            </a>
-            <a href="/admin/users/pending" class="active">
-                <i class="fas fa-user-clock"></i> کاربران در انتظار
-            </a>
-            <a href="/admin/courses">
-                <i class="fas fa-book"></i> مدیریت دوره‌ها
-            </a>
-        </nav>
+<div class="container mt-4">
+    <h2 class="mb-4">
+        <i class="fas fa-user-clock text-warning"></i>
+        کاربران در انتظار تأیید
+    </h2>
 
-        <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-users"></i>کاربران در انتظار</h2>
-                <div class="input-group" style="max-width: 300px;">
-                    <input type="text" class="form-control" id="searchInput" placeholder="جستجو...">
-                    <button class="btn btn-primary">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </div>
+    <div id="alert-container"></div>
 
-            <div id="alert-container"></div>
+    <div class="table-card">
+        <div th:if="${#lists.isEmpty(users)}" class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            کاربری در انتظار تأیید وجود ندارد
+        </div>
 
-            <div class="table-card">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
-                        <tr>
-                            <th>شناسه</th>
-                            <th>نام کامل</th>
-                            <th>نام کاربری</th>
-                            <th>ایمیل</th>
-                            <th>نقش</th>
-                            <th>وضعیت</th>
-                            <th>تاریخ ثبت</th>
-                            <th>عملیات</th>
-                        </tr>
-                        </thead>
-                        <tbody id="userTableBody">
-                        <tr th:each="user : ${users}">
-                            <td th:text="${user.id}">1</td>
-                            <td th:text="${user.fullName}">نام</td>
-                            <td th:text="${user.username}">username</td>
-                            <td th:text="${user.email}">email</td>
-                            <td>
-                                        <span class="badge"
-                                              th:classappend="${user.role.name() == 'ADMIN' ? 'bg-danger' :
-                                                               user.role.name() == 'INSTRUCTOR' ? 'bg-primary' : 'bg-success'}"
-                                              th:text="${user.role.name() == 'ADMIN' ? 'مدیر' :
-                                                        user.role.name() == 'INSTRUCTOR' ? 'استاد' : 'دانشجو'}">
-                                        </span>
-                            </td>
-                            <td>
-                                        <span class="badge"
-                                              th:classappend="${user.status.name() == 'APPROVED' ? 'bg-success' :
-                                                               user.status.name() == 'PENDING' ? 'bg-warning' : 'bg-danger'}"
-                                              th:text="${user.status.name() == 'APPROVED' ? 'تأیید شده' :
-                                                        user.status.name() == 'PENDING' ? 'در انتظار' : 'رد شده'}">
-                                        </span>
-                            </td>
-                            <td th:text="${#temporals.format(user.createdAt, 'yyyy/MM/dd')}">تاریخ</td>
-                            <td>
-                                <button class="btn btn-sm btn-success"
-                                        th:if="${user.status.name() == 'PENDING'}"
-                                        th:onclick="'approveUser(' + ${user.id} + ')'">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="btn btn-sm btn-warning"
-                                        th:onclick="'editUser(' + ${user.id} + ')'">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger"
-                                        th:onclick="'deleteUser(' + ${user.id} + ')'">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
+        <div th:if="${!#lists.isEmpty(users)}" class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                <tr>
+                    <th>نام کامل</th>
+                    <th>نام کاربری</th>
+                    <th>ایمیل</th>
+                    <th>نقش</th>
+                    <th>تاریخ ثبت‌نام</th>
+                    <th>عملیات</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="user : ${users}">
+                    <td th:text="${user.fullName}">نام</td>
+                    <td th:text="${user.username}">username</td>
+                    <td th:text="${user.email}">email</td>
+                    <td>
+                                <span class="badge bg-primary"
+                                      th:text="${user.role.name() == 'INSTRUCTOR' ? 'استاد' : 'دانشجو'}">
+                                </span>
+                    </td>
+                    <td th:text="${#temporals.format(user.createdAt, 'yyyy/MM/dd HH:mm')}">تاریخ</td>
+                    <td>
+                        <button class="btn btn-sm btn-success me-2"
+                                th:onclick="'approveUser(' + ${user.id} + ')'">
+                            <i class="fas fa-check"></i> تأیید
+                        </button>
+                        <button class="btn btn-sm btn-danger"
+                                th:onclick="'rejectUser(' + ${user.id} + ')'">
+                            <i class="fas fa-times"></i> رد
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // جستجو
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        const rows = document.querySelectorAll('#userTableBody tr');
-
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(searchTerm) ? '' : 'none';
-        });
-    });
-
-    // تأیید کاربر
     async function approveUser(userId) {
         if (!confirm('آیا از تأیید این کاربر اطمینان دارید؟')) return;
 
         try {
             const response = await fetch(`/api/users/${userId}/approve`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'}
+                method: 'PUT'
             });
 
             if (response.ok) {
                 showAlert('success', 'کاربر با موفقیت تأیید شد');
                 setTimeout(() => location.reload(), 1000);
-            } else {
-                showAlert('danger', 'خطا در تأیید کاربر');
             }
         } catch (error) {
-            showAlert('danger', 'خطا در ارتباط با سرور');
+            showAlert('danger', 'خطا در تأیید کاربر');
         }
     }
 
-    // حذف کاربر
-    async function deleteUser(userId) {
-        if (!confirm('آیا از حذف این کاربر اطمینان دارید؟')) return;
+    async function rejectUser(userId) {
+        if (!confirm('آیا از رد این کاربر اطمینان دارید؟')) return;
 
         try {
-            const response = await fetch(`/api/users/${userId}`, {
-                method: 'DELETE'
+            const response = await fetch(`/api/users/${userId}/reject`, {
+                method: 'PUT'
             });
 
             if (response.ok) {
-                showAlert('success', 'کاربر با موفقیت حذف شد');
+                showAlert('success', 'کاربر رد شد');
                 setTimeout(() => location.reload(), 1000);
-            } else {
-                showAlert('danger', 'خطا در حذف کاربر');
             }
         } catch (error) {
-            showAlert('danger', 'خطا در ارتباط با سرور');
+            showAlert('danger', 'خطا در رد کاربر');
         }
     }
 
     function showAlert(type, message) {
-        const alertHtml = `
-                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+        document.getElementById('alert-container').innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show">
                     ${message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             `;
-        document.getElementById('alert-container').innerHTML = alertHtml;
     }
 </script>
 </body>

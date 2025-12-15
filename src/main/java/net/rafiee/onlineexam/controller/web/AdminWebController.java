@@ -1,5 +1,6 @@
 package net.rafiee.onlineexam.controller.web;
 
+import net.rafiee.onlineexam.enumuration.UserRole;
 import net.rafiee.onlineexam.enumuration.UserStatus;
 import net.rafiee.onlineexam.service.CourseService;
 import net.rafiee.onlineexam.service.UserService;
@@ -53,6 +54,8 @@ public class AdminWebController {
     @GetMapping("/courses/{id}")
     public String courseDetail(@PathVariable Long id, Model model) {
         model.addAttribute("course", courseService.getCourseById(id));
+        model.addAttribute("availableStudents", userService.getUsersByRole(UserRole.STUDENT));
+        model.addAttribute("availableInstructors", userService.getUsersByRole(UserRole.INSTRUCTOR));
         return "admin/course-detail";
     }
 }

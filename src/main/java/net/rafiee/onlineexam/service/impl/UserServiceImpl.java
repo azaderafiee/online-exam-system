@@ -13,6 +13,8 @@ import net.rafiee.onlineexam.security.JwtTokenProvider;
 import net.rafiee.onlineexam.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.rafiee.onlineexam.specification.UserSpecification;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -110,7 +112,21 @@ public class UserServiceImpl implements UserService {
                 .map(this::mapToUserResponseDTO)
                 .collect(Collectors.toList());
     }
-    
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponseDTO> searchUsersWithFilter(String keyword, UserRole role, UserStatus status) {
+        log.info("Searching users with filters - keyword: {}, role: {}, status: {}", keyword, role, status);
+
+        Specification<User> spec = UserSpecification.searchUsers(keyword, role, status);
+        List<User> users = userRepository.findAll(spec);
+
+        log.info("Found {} users matching criteria", users.size());
+        return users.stream()
+                .map(this::mapToUserResponseDTO)
+                .collect(Collectors.toList());
+    }
+
     @Override
     public UserResponseDTO updateUser(Long id, UserUpdateDTO updateDTO) {
         log.info("Updating user with ID: {}", id);
@@ -199,7 +215,16 @@ public class UserServiceImpl implements UserService {
         
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("کاربر یافت نشد"));
-        
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getName().equals(user.getUsername())) {
+            throw new BadRequestException("شما نمی‌توانید حساب کاربری خود را حذف کنید");
+        }
+
+        if (user.getRole() == UserRole.ADMIN && user.getUsername().equals("admin")) {
+            throw new BadRequestException("حذف مدیر اصلی سیستم مجاز نیست");
+        }
+
         userRepository.delete(user);
         log.info("User deleted successfully");
     }
