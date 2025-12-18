@@ -15,7 +15,7 @@ public class UserSpecification {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             
-            // جستجوی کلمه کلیدی در نام، نام کاربری و ایمیل
+            // -----------------------------------------------
             if (keyword != null && !keyword.trim().isEmpty()) {
                 String searchPattern = "%" + keyword.toLowerCase() + "%";
                 Predicate namePredicate = criteriaBuilder.like(
@@ -28,12 +28,12 @@ public class UserSpecification {
                 predicates.add(criteriaBuilder.or(namePredicate, usernamePredicate, emailPredicate));
             }
             
-            // فیلتر بر اساس نقش
+            // -------------------------------------
             if (role != null) {
                 predicates.add(criteriaBuilder.equal(root.get("role"), role));
             }
             
-            // فیلتر بر اساس وضعیت
+            // ---------------------------------
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), status));
             }
