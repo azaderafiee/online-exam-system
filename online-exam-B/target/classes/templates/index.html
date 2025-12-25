@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خانه - سیستم مدیریت آزمون</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .hero-section {
+            text-align: center;
+            color: white;
+            padding: 50px 20px;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero-section">
+        <h1 class="hero-title">
+            <i class="fas fa-graduation-cap"></i>
+            سیستم مدیریت آزمون آنلاین
+        </h1>
+        <p class="lead">پلتفرم هوشمند برای برگزاری و مدیریت آزمون‌های آنلاین</p>
+
+        <div class="mt-4">
+            <a href="/login" class="btn btn-light btn-lg mx-2">
+                <i class="fas fa-sign-in-alt"></i> ورود به سیستم
+            </a>
+            <a href="/register" class="btn btn-outline-light btn-lg mx-2">
+                <i class="fas fa-user-plus"></i> ثبت نام
+            </a>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <h4>مدیریت کاربران</h4>
+                <p>مدیریت آسان استادان و دانشجویان با سیستم تأیید پیشرفته</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <h4>دوره‌های متنوع</h4>
+                <p>ایجاد و مدیریت دوره‌های درسی با امکانات کامل</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h4>آزمون آنلاین</h4>
+                <p>برگزاری آزمون با سوالات تستی و تشریحی</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
