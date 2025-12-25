@@ -1,0 +1,3 @@
+[submodule "online-exam-A/online-exam"]
+	path = online-exam-A/online-exam
+	url = https://github.com/username/online-exam-A.git
