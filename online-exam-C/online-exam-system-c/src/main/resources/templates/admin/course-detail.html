@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جزئیات دوره</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background: #f5f5f5; }
+        .info-card { background: white; border-radius: 15px; padding: 25px; margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .section-header { border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-bottom: 20px; }
+        .member-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/admin/courses">
+            <i class="fas fa-arrow-right"></i> بازگشت به لیست دوره‌ها
+        </a>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div id="alert-container"></div>
+
+    <div class="info-card">
+        <h2 class="section-header">
+            <i class="fas fa-info-circle text-primary"></i>
+            <span th:text="${course.title}">عنوان دوره</span>
+        </h2>
+
+        <div class="row">
+            <div class="col-md-3">
+                <strong>کد دوره:</strong>
+                <span class="badge bg-primary" th:text="${course.courseCode}">CODE</span>
+            </div>
+            <div class="col-md-3">
+                <strong>تاریخ شروع:</strong>
+                <span th:text="${#temporals.format(course.startDate, 'yyyy/MM/dd')}">تاریخ</span>
+            </div>
+            <div class="col-md-3">
+                <strong>تاریخ پایان:</strong>
+                <span th:text="${#temporals.format(course.endDate, 'yyyy/MM/dd')}">تاریخ</span>
+            </div>
+            <div class="col-md-3">
+                <strong>تعداد دانشجو:</strong>
+                <span class="badge bg-success" th:text="${course.studentCount}">0</span>
+            </div>
+        </div>
+
+        <div class="mt-3" th:if="${course.description}">
+            <strong>توضیحات:</strong>
+            <p class="text-muted" th:text="${course.description}">توضیحات دوره</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="info-card">
+                <div class="d-flex justify-content-between align-items-center section-header">
+                    <h4><i class="fas fa-user-tie text-primary"></i> استاد دوره</h4>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addInstructorModal"
+                            th:if="${course.instructors.size() == 0}">
+                        <i class="fas fa-plus"></i> افزودن استاد
+                    </button>
+                </div>
+
+                <div th:if="${course.instructors.size() == 0}" class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    هنوز استادی به این دوره اختصاص داده نشده است
+                </div>
+
+                <div th:each="instructor : ${course.instructors}" class="member-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">
+                                <i class="fas fa-user"></i>
+                                <span th:text="${instructor.fullName}">نام استاد</span>
+                            </h6>
+                            <small class="text-muted">
+                                <i class="fas fa-envelope"></i>
+                                <span th:text="${instructor.email}">ایمیل</span>
+                            </small>
+                            <br>
+                            <small class="text-muted" th:if="${instructor.phoneNumber}">
+                                <i class="fas fa-phone"></i>
+                                <span th:text="${instructor.phoneNumber}">تلفن</span>
+                            </small>
+                        </div>
+                        <button class="btn btn-sm btn-danger"
+                                th:onclick="'removeInstructor(' + ${instructor.id} + ')'">
+                            <i class="fas fa-trash"></i> حذف
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="info-card">
+                <div class="d-flex justify-content-between align-items-center section-header">
+                    <h4><i class="fas fa-user-graduate text-success"></i> دانشجویان</h4>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                            <i class="fas fa-user-plus"></i> افزودن یک دانشجو
+                        </button>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addMultipleStudentsModal">
+                            <i class="fas fa-users"></i> افزودن چند دانشجو
+                        </button>
+                    </div>
+                </div>
+
+                <div th:if="${course.students.size() == 0}" class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    هنوز دانشجویی به این دوره اضافه نشده است
+                </div>
+
+                <div class="mb-3" th:if="${course.students.size() > 0}">
+                    <input type="text" class="form-control" id="studentSearch"
+                           placeholder="جستجوی دانشجو...">
+                </div>
+
+                <div style="max-height: 500px; overflow-y: auto;" id="studentsList">
+                    <div th:each="student : ${course.students}" class="member-card student-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">
+                                    <i class="fas fa-user"></i>
+                                    <span th:text="${student.fullName}">نام دانشجو</span>
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-envelope"></i>
+                                    <span th:text="${student.email}">ایمیل</span>
+                                </small>
+                            </div>
+                            <button class="btn btn-sm btn-danger"
+                                    th:onclick="'removeStudent(' + ${student.id} + ')'">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addInstructorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-user-tie"></i> افزودن استاد</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <select class="form-select" id="instructorSelect">
+                    <option value="">انتخاب استاد...</option>
+                    <option th:each="instructor : ${availableInstructors}"
+                            th:value="${instructor.id}"
+                            th:text="${instructor.fullName + ' (' + instructor.email + ')'}">
+                    </option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                <button type="button" class="btn btn-primary" onclick="addInstructor()">
+                    <i class="fas fa-plus"></i> افزودن
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-user-plus"></i> افزودن دانشجو</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control mb-3" id="studentSearchModal"
+                       placeholder="جستجو در لیست دانشجویان...">
+                <select class="form-select" id="studentSelect" size="10">
+                    <option th:each="student : ${availableStudents}"
+                            th:value="${student.id}"
+                            th:text="${student.fullName + ' (' + student.email + ')'}">
+                    </option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                <button type="button" class="btn btn-success" onclick="addStudent()">
+                    <i class="fas fa-plus"></i> افزودن
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addMultipleStudentsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-users"></i> افزودن چند دانشجو</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control mb-3" id="multiStudentSearch"
+                       placeholder="جستجو...">
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <div th:each="student : ${availableStudents}" class="form-check">
+                        <input class="form-check-input student-checkbox" type="checkbox"
+                               th:value="${student.id}"
+                               th:id="'student-' + ${student.id}">
+                        <label class="form-check-label" th:for="'student-' + ${student.id}">
+                            <span th:text="${student.fullName}">نام</span>
+                            <small class="text-muted" th:text="'(' + ${student.email} + ')'">ایمیل</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                <button type="button" class="btn btn-primary" onclick="addMultipleStudents()">
+                    <i class="fas fa-check"></i> افزودن انتخاب شده‌ها
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const courseId = /*[[${course.id}]]*/ 1;
+
+    document.getElementById('studentSearch')?.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        document.querySelectorAll('.student-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    document.getElementById('studentSearchModal')?.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const options = document.getElementById('studentSelect').options;
+        for (let i = 0; i < options.length; i++) {
+            const text = options[i].text.toLowerCase();
+            options[i].style.display = text.includes(searchTerm) ? '' : 'none';
+        }
+    });
+
+    document.getElementById('multiStudentSearch')?.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        document.querySelectorAll('.form-check').forEach(check => {
+            const text = check.textContent.toLowerCase();
+            check.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    async function addInstructor() {
+        const instructorId = document.getElementById('instructorSelect').value;
+        if (!instructorId) {
+            alert('لطفاً یک استاد انتخاب کنید');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/courses/${courseId}/instructors/${instructorId}`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                showAlert('success', 'استاد با موفقیت اضافه شد');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const error = await response.json();
+                showAlert('danger', error.message);
+            }
+        } catch (error) {
+            showAlert('danger', 'خطا در افزودن استاد');
+        }
+    }
+
+    async function removeInstructor(instructorId) {
+        if (!confirm('آیا از حذف این استاد اطمینان دارید؟')) return;
+
+        try {
+            const response = await fetch(`/api/courses/${courseId}/instructors/${instructorId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showAlert('success', 'استاد با موفقیت حذف شد');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert('danger', 'خطا در حذف استاد');
+            }
+        } catch (error) {
+            showAlert('danger', 'خطا در ارتباط با سرور');
+        }
+    }
+
+    async function addStudent() {
+        const studentId = document.getElementById('studentSelect').value;
+        if (!studentId) {
+            alert('لطفاً یک دانشجو انتخاب کنید');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/courses/${courseId}/students/${studentId}`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                showAlert('success', 'دانشجو با موفقیت اضافه شد');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const error = await response.json();
+                showAlert('danger', error.message);
+            }
+        } catch (error) {
+            showAlert('danger', 'خطا در افزودن دانشجو');
+        }
+    }
+
+    async function addMultipleStudents() {
+        const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+        const studentIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+        if (studentIds.length === 0) {
+            alert('لطفاً حداقل یک دانشجو انتخاب کنید');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/courses/${courseId}/students/batch`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(studentIds)
+            });
+
+            if (response.ok) {
+                showAlert('success', `${studentIds.length} دانشجو با موفقیت اضافه شدند`);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert('danger', 'خطا در افزودن دانشجویان');
+            }
+        } catch (error) {
+            showAlert('danger', 'خطا در ارتباط با سرور');
+        }
+    }
+
+    async function removeStudent(studentId) {
+        if (!confirm('آیا از حذف این دانشجو اطمینان دارید؟')) return;
+
+        try {
+            const response = await fetch(`/api/courses/${courseId}/students/${studentId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showAlert('success', 'دانشجو با موفقیت حذف شد');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert('danger', 'خطا در حذف دانشجو');
+            }
+        } catch (error) {
+            showAlert('danger', 'خطا در ارتباط با سرور');
+        }
+    }
+
+    function showAlert(type, message) {
+        document.getElementById('alert-container').innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+</script>
+</body>
+</html>
