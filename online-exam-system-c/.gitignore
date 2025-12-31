@@ -1,0 +1,37 @@
+# IDE folders
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+
+# Build output
+target/
+bin/
+out/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary/backup files
+*.tmp
+*.bak
+*.swp
+*.orig
+*.rej
+
+# Old phases / extra folders
+online-exam-A/
+online-exam-B/
+online-exam-C/
+
+# README and other docs
+*.md
+
+

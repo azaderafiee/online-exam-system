@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت دوره‌ها</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background: #f5f5f5; }
+        .course-card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .course-card:hover { transform: translateY(-5px); }
+        .course-header { border-bottom: 2px solid #667eea; padding-bottom: 15px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/admin/dashboard">
+            <i class="fas fa-graduation-cap text-primary"></i> پنل مدیریت
+        </a>
+        <a href="/admin/courses/create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> ایجاد دوره جدید
+        </a>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-book"></i> مدیریت دوره‌ها</h2>
+        <div class="input-group" style="max-width: 300px;">
+            <input type="text" class="form-control" id="searchInput" placeholder="جستجو...">
+            <button class="btn btn-primary"><i class="fas fa-search"></i></button>
+        </div>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <div class="row" id="coursesContainer">
+        <div class="col-md-6 col-lg-4" th:each="course : ${courses}">
+            <div class="course-card">
+                <div class="course-header">
+                    <h5 class="mb-2" th:text="${course.title}">عنوان دوره</h5>
+                    <span class="badge bg-primary" th:text="${course.courseCode}">CODE123</span>
+                </div>
+
+                <p class="text-muted mb-3" th:text="${course.description ?: 'بدون توضیحات'}">توضیحات</p>
+
+                <div class="mb-3">
+                    <small class="d-block">
+                        <i class="fas fa-calendar-start text-success"></i>
+                        شروع: <span th:text="${#temporals.format(course.startDate, 'yyyy/MM/dd')}"></span>
+                    </small>
+                    <small class="d-block">
+                        <i class="fas fa-calendar-end text-danger"></i>
+                        پایان: <span th:text="${#temporals.format(course.endDate, 'yyyy/MM/dd')}"></span>
+                    </small>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-info">
+                            <i class="fas fa-user-tie"></i>
+                            <span th:text="${course.instructorCount}">0</span> استاد
+                        </span>
+                    <span class="badge bg-success">
+                            <i class="fas fa-user-graduate"></i>
+                            <span th:text="${course.studentCount}">0</span> دانشجو
+                        </span>
+                </div>
+
+                <div class="btn-group w-100">
+                    <a th:href="@{/admin/courses/{id}(id=${course.id})}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-eye"></i> مشاهده
+                    </a>
+                    <button class="btn btn-sm btn-warning" th:onclick="'editCourse(' + ${course.id} + ')'">
+                        <i class="fas fa-edit"></i> ویرایش
+                    </button>
+                    <button class="btn btn-sm btn-danger" th:onclick="'deleteCourse(' + ${course.id} + ')'">
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editCourseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> ویرایش دوره</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCourseForm">
+                    <input type="hidden" id="editCourseId">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">عنوان دوره *</label>
+                            <input type="text" class="form-control" id="editTitle" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">کد دوره *</label>
+                            <input type="text" class="form-control" id="editCourseCode" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">توضیحات</label>
+                        <textarea class="form-control" id="editDescription" rows="3"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">تاریخ شروع *</label>
+                            <input type="date" class="form-control" id="editStartDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">تاریخ پایان *</label>
+                            <input type="date" class="form-control" id="editEndDate" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                <button type="button" class="btn btn-primary" onclick="saveCourseChanges()">
+                    <i class="fas fa-save"></i> ذخیره
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const cards = document.querySelectorAll('.course-card');
+
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.parentElement.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    async function editCourse(courseId) {
+        try {
+            const response = await fetch(`/api/courses/${courseId}`);
+            const course = await response.json();
+
+            document.getElementById('editCourseId').value = course.id;
+            document.getElementById('editTitle').value = course.title;
+            document.getElementById('editCourseCode').value = course.courseCode;
+            document.getElementById('editDescription').value = course.description || '';
+            document.getElementById('editStartDate').value = course.startDate;
+            document.getElementById('editEndDate').value = course.endDate;
+
+            new bootstrap.Modal(document.getElementById('editCourseModal')).show();
+        } catch (error) {
+            showAlert('danger', 'خطا در دریافت اطلاعات دوره');
+        }
+    }
+
+    async function saveCourseChanges() {
+        const courseId = document.getElementById('editCourseId').value;
+        const data = {
+            title: document.getElementById('editTitle').value,
+            courseCode: document.getElementById('editCourseCode').value,
+            description: document.getElementById('editDescription').value,
+            startDate: document.getElementById('editStartDate').value,
+            endDate: document.getElementById('editEndDate').value
+        };
+
+        try {
+            const response = await fetch(`/api/courses/${courseId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editCourseModal')).hide();
+                showAlert('success', 'دوره با موفقیت ویرایش شد');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                const error = await response.json();
+                showAlert('danger', error.message);
+            }
+        } catch (error) {
+            showAlert('danger', 'خطا در ذخیره تغییرات');
+        }
+    }
+
+    async function deleteCourse(courseId) {
+        if (!confirm('آیا از حذف این دوره اطمینان دارید؟')) return;
+
+        try {
+            const response = await fetch(`/api/courses/${courseId}`, {method: 'DELETE'});
+
+            if (response.ok) {
+                showAlert('success', 'دوره با موفقیت حذف شد');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert('danger', 'خطا در حذف دوره');
+            }
+        } catch (error) {
+            showAlert('danger', 'خطا در ارتباط با سرور');
+        }
+    }
+
+    function showAlert(type, message) {
+        document.getElementById('alert-container').innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+</script>
+</body>
+</html>

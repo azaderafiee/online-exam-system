@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'بانک سوالات - ' + ${course.title}">بانک سوالات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: #f5f5f5;
+        }
+        .question-card {
+            transition: all 0.3s ease;
+            border-right: 4px solid #dee2e6;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .question-card:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+        .question-card.multiple-choice {
+            border-right-color: #0d6efd;
+        }
+        .question-card.descriptive {
+            border-right-color: #198754;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .badge-type {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.65rem;
+        }
+        .search-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" th:href="@{/instructor/courses/{id}/exams(id=${course.id})}">
+            <i class="fas fa-arrow-right"></i> بازگشت به آزمون‌ها
+        </a>
+        <div class="btn-group">
+            <a th:href="@{/instructor/courses/{id}/exams(id=${course.id})}" class="btn btn-outline-primary">
+                <i class="fas fa-file-alt"></i> آزمون‌ها
+            </a>
+            <a th:href="@{/instructor/courses/{id}/questions/new(id=${course.id})}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> ایجاد سوال جدید
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-3">
+                <i class="fas fa-database text-primary"></i>
+                بانک سوالات - <span th:text="${course.title}">دوره</span>
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/instructor/dashboard}">داشبورد</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/instructor/courses}">دوره‌ها</a></li>
+                    <li class="breadcrumb-item active" th:text="${course.title}">دوره</li>
+                    <li class="breadcrumb-item active">بانک سوالات</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- آمار -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card text-center">
+                <div class="card-body">
+                    <h3 class="display-4" th:text="${totalQuestions}">0</h3>
+                    <p class="mb-0">کل سوالات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white text-center">
+                <div class="card-body">
+                    <h3 class="display-4" th:text="${multipleChoiceCount}">0</h3>
+                    <p class="mb-0">چندگزینه‌ای</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white text-center">
+                <div class="card-body">
+                    <h3 class="display-4" th:text="${descriptiveCount}">0</h3>
+                    <p class="mb-0">تشریحی</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white text-center">
+                <div class="card-body">
+                    <h5 class="mb-0" th:text="${course.courseCode}">کد دوره</h5>
+                    <p class="mb-0 small">کد دوره</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جستجو و فیلتر -->
+    <div class="search-section">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text"
+                           class="form-control"
+                           id="searchInput"
+                           placeholder="جستجو در عنوان یا متن سوال...">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" id="typeFilter">
+                    <option value="">همه انواع</option>
+                    <option value="MULTIPLE_CHOICE">چندگزینه‌ای</option>
+                    <option value="DESCRIPTIVE">تشریحی</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- لیست سوالات -->
+    <div id="questionsList">
+        <div th:if="${questions.size() == 0}" class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            هنوز سوالی برای این دوره ایجاد نشده است.
+            <a th:href="@{/instructor/courses/{id}/questions/new(id=${course.id})}" class="alert-link">
+                اولین سوال را ایجاد کنید
+            </a>
+        </div>
+
+        <div th:each="question : ${questions}"
+             th:class="'question-card ' + ${question.type == T(net.rafiee.onlineexam.enumuration.QuestionType).MULTIPLE_CHOICE ? 'multiple-choice' : 'descriptive'}"
+             th:attr="data-type=${question.type}, data-title=${question.title}, data-text=${question.questionText}">
+
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="flex-grow-1">
+                    <h5 class="mb-2">
+                        <span th:if="${question.type == T(net.rafiee.onlineexam.enumuration.QuestionType).MULTIPLE_CHOICE}">
+                            <i class="fas fa-list-ul text-primary"></i>
+                        </span>
+                        <span th:if="${question.type == T(net.rafiee.onlineexam.enumuration.QuestionType).DESCRIPTIVE}">
+                            <i class="fas fa-align-left text-success"></i>
+                        </span>
+                        <span th:text="${question.title}">عنوان سوال</span>
+                    </h5>
+                    <p class="text-muted mb-2" th:text="${question.questionText}">متن سوال</p>
+                    <div>
+                        <span class="badge badge-type"
+                              th:classappend="${question.type == T(net.rafiee.onlineexam.enumuration.QuestionType).MULTIPLE_CHOICE ? 'bg-primary' : 'bg-success'}"
+                              th:text="${question.type == T(net.rafiee.onlineexam.enumuration.QuestionType).MULTIPLE_CHOICE ? 'چندگزینه‌ای' : 'تشریحی'}">
+                            نوع
+                        </span>
+                        <span class="badge bg-secondary badge-type">
+                            <i class="fas fa-user"></i>
+                            <span th:text="${question.createdByName}">سازنده</span>
+                        </span>
+                        <span class="badge bg-info badge-type">
+                            <i class="fas fa-calendar"></i>
+                            <span th:text="${#temporals.format(question.createdAt, 'yyyy/MM/dd')}">تاریخ</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="btn-group-vertical btn-group-sm ms-3">
+                    <button class="btn btn-sm btn-info view-btn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#viewModal"
+                            th:data-question-id="${question.id}">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <a th:href="@{/instructor/questions/{id}/edit(id=${question.id})}"
+                       class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <button class="btn btn-sm btn-danger delete-btn"
+                            th:data-question-id="${question.id}"
+                            th:data-question-title="${question.title}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- نمایش گزینه‌ها برای سوال چندگزینه‌ای -->
+            <div th:if="${question.type == T(net.rafiee.onlineexam.enumuration.QuestionType).MULTIPLE_CHOICE && question.options != null && question.options.size() > 0}"
+                 class="mt-3 pt-3 border-top">
+                <small class="text-muted d-block mb-2">گزینه‌ها:</small>
+                <div class="row">
+                    <div th:each="option, iterStat : ${question.options}"
+                         class="col-md-6 mb-2">
+                        <div class="d-flex align-items-center">
+                            <span th:if="${option.isCorrect}" class="badge bg-success me-2">
+                                <i class="fas fa-check"></i>
+                            </span>
+                            <span th:unless="${option.isCorrect}" class="badge bg-secondary me-2">
+                                <span th:text="${iterStat.index + 1}">1</span>
+                            </span>
+                            <small th:text="${option.optionText}">گزینه</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- نمایش اطلاعات سوال تشریحی -->
+            <div th:if="${question.type == T(net.rafiee.onlineexam.enumuration.QuestionType).DESCRIPTIVE}"
+                 class="mt-3 pt-3 border-top">
+                <small class="text-muted">
+                    <span th:if="${question.maxWords != null}">
+                        <i class="fas fa-text-width"></i>
+                        حداکثر <span th:text="${question.maxWords}">0</span> کلمه
+                    </span>
+                    <span th:if="${question.sampleAnswer != null}" class="ms-3">
+                        <i class="fas fa-check-circle text-success"></i>
+                        دارای پاسخ نمونه
+                    </span>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal مشاهده جزئیات -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">جزئیات سوال</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <!-- محتوا با JavaScript پر می‌شود -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const questions = /*[[${questions}]]*/ [];
+
+    // جستجو و فیلتر
+    document.getElementById('searchInput').addEventListener('input', filterQuestions);
+    document.getElementById('typeFilter').addEventListener('change', filterQuestions);
+
+    function filterQuestions() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const selectedType = document.getElementById('typeFilter').value;
+
+        document.querySelectorAll('.question-card').forEach(card => {
+            const title = card.dataset.title.toLowerCase();
+            const text = card.dataset.text.toLowerCase();
+            const type = card.dataset.type;
+
+            const matchesSearch = title.includes(searchTerm) || text.includes(searchTerm);
+            const matchesType = !selectedType || type === selectedType;
+
+            card.style.display = (matchesSearch && matchesType) ? 'block' : 'none';
+        });
+    }
+
+    // مشاهده جزئیات - با event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.view-btn')) {
+            const btn = e.target.closest('.view-btn');
+            const questionId = parseInt(btn.dataset.questionId);
+            viewQuestion(questionId);
+        }
+    });
+
+    function viewQuestion(questionId) {
+        const question = questions.find(q => q.id === questionId);
+        if (!question) return;
+
+        let html = `
+            <h5>${question.title}</h5>
+            <p class="text-muted">${question.questionText}</p>
+            <hr>
+        `;
+
+        if (question.type === 'MULTIPLE_CHOICE' && question.options) {
+            html += '<h6>گزینه‌ها:</h6><ul class="list-group mb-3">';
+            question.options.forEach((opt, index) => {
+                html += `
+                    <li class="list-group-item ${opt.isCorrect ? 'list-group-item-success' : ''}">
+                        ${opt.isCorrect ? '<i class="fas fa-check text-success"></i>' : (index + 1) + '.'}
+                        ${opt.optionText}
+                    </li>
+                `;
+            });
+            html += '</ul>';
+        }
+
+        if (question.type === 'DESCRIPTIVE') {
+            if (question.maxWords) {
+                html += `<p><strong>حداکثر کلمات:</strong> ${question.maxWords}</p>`;
+            }
+            if (question.sampleAnswer) {
+                html += `<p><strong>پاسخ نمونه:</strong></p><p class="text-muted">${question.sampleAnswer}</p>`;
+            }
+        }
+
+        html += `
+            <hr>
+            <small class="text-muted">
+                ساخته شده توسط: ${question.createdByName}<br>
+                تاریخ: ${new Date(question.createdAt).toLocaleDateString('fa-IR')}
+            </small>
+        `;
+
+        document.getElementById('modalContent').innerHTML = html;
+    }
+
+    // حذف سوال - با event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-btn')) {
+            const btn = e.target.closest('.delete-btn');
+            const questionId = btn.dataset.questionId;
+            const title = btn.dataset.questionTitle;
+            confirmDelete(questionId, title);
+        }
+    });
+
+    function confirmDelete(questionId, title) {
+        if (confirm(`آیا از حذف سوال "${title}" اطمینان دارید؟\n\nتوجه: اگر این سوال در آزمونی استفاده شده باشد، نمی‌توانید آن را حذف کنید.`)) {
+            deleteQuestion(questionId);
+        }
+    }
+
+    async function deleteQuestion(questionId) {
+        try {
+            const response = await fetch(`/api/questions/${questionId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert('سوال با موفقیت حذف شد');
+                location.reload();
+            } else {
+                const error = await response.json();
+                alert('خطا: ' + error.message);
+            }
+        } catch (error) {
+            alert('خطا در حذف سوال');
+            console.error(error);
+        }
+    }
+    /*]]>*/
+</script>
+
+</body>
+</html>
