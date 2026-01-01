@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد استاد</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        .dashboard-card:hover { transform: translateY(-5px); }
+        .stats-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stats-number { font-size: 2.5rem; font-weight: bold; }
+        .navbar { background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/instructor/dashboard">
+            <i class="fas fa-chalkboard-teacher text-primary"></i>
+            <strong>پنل استاد</strong>
+        </a>
+        <ul class="navbar-nav ms-auto">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user-circle"></i> استاد
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <form th:action="@{/logout}" method="post">
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="fas fa-sign-out-alt"></i> خروج
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container">
+    <h2 class="text-white mb-4">
+        <i class="fas fa-tachometer-alt"></i> داشبورد استاد
+    </h2>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="stats-box">
+                <i class="fas fa-book fa-3x mb-3"></i>
+                <div class="stats-number" th:text="${courses.size()}">0</div>
+                <h5>دوره‌های من</h5>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stats-box">
+                <i class="fas fa-file-alt fa-3x mb-3"></i>
+                <div class="stats-number" th:text="${exams.size()}">0</div>
+                <h5>آزمون‌های من</h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="dashboard-card text-center">
+                <i class="fas fa-book fa-3x text-primary mb-3"></i>
+                <h5>دوره‌های من</h5>
+                <p class="text-muted">مشاهده و مدیریت دوره‌ها</p>
+                <a href="/instructor/courses" class="btn btn-primary">
+                    مشاهده دوره‌ها
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="dashboard-card text-center">
+                <i class="fas fa-file-alt fa-3x text-success mb-3"></i>
+                <h5>آزمون‌ها</h5>
+                <p class="text-muted">مشاهده همه آزمون‌ها</p>
+                <a href="/instructor/exams" class="btn btn-success">
+                    مشاهده آزمون‌ها
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="dashboard-card text-center">
+                <i class="fas fa-chart-bar fa-3x text-warning mb-3"></i>
+                <h5>گزارشات</h5>
+                <p class="text-muted">نمرات و نتایج</p>
+                <button class="btn btn-warning" disabled>
+                    فاز بعدی
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <h4 class="mb-4">
+            <i class="fas fa-book text-primary"></i> دوره‌های من
+        </h4>
+        <div th:if="${courses.size() == 0}" class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            شما هنوز به هیچ دوره‌ای اختصاص داده نشده‌اید
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3" th:each="course : ${courses}">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title" th:text="${course.title}">عنوان دوره</h5>
+                        <p class="text-muted">
+                            <i class="fas fa-code"></i>
+                            <span th:text="${course.courseCode}">کد</span>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-success">
+                                    <i class="fas fa-user-graduate"></i>
+                                    <span th:text="${course.studentCount}">0</span> دانشجو
+                                </span>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a th:href="@{/instructor/courses/{id}/exams(id=${course.id})}"
+                                   class="btn btn-primary"
+                                   title="آزمون‌ها">
+                                    <i class="fas fa-file-alt"></i>
+                                </a>
+                                <a th:href="@{/instructor/courses/{id}/questions(id=${course.id})}"
+                                   class="btn btn-info"
+                                   title="بانک سوالات">
+                                    <i class="fas fa-database"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

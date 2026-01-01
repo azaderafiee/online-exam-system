@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت سوالات آزمون</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.css">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: #f5f5f5;
+        }
+
+        .exam-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .stats-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            cursor: move;
+            border-right: 5px solid #667eea;
+        }
+
+        .question-card:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .question-card.sortable-ghost {
+            opacity: 0.4;
+            background: #f0f0f0;
+        }
+
+        .question-card.sortable-chosen {
+            background: #f8f9fa;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #999;
+            font-size: 1.2rem;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .question-meta {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .score-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .btn-add-questions {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 25px;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn-add-questions:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .question-bank-item {
+            padding: 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .question-bank-item:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .question-bank-item.selected {
+            border-color: #667eea;
+            background: #e7f1ff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/instructor/dashboard">
+            <i class="fas fa-chalkboard-teacher"></i> پنل استاد
+        </a>
+        <div class="navbar-nav me-auto">
+            <a class="nav-link" th:href="@{/instructor/courses/{id}/exams(id=${courseId})}">
+                <i class="fas fa-arrow-right"></i> بازگشت به آزمون‌ها
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <!-- Exam Header -->
+    <div class="exam-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2">
+                    <i class="fas fa-file-alt"></i>
+                    <span th:text="${exam.title}">عنوان آزمون</span>
+                </h2>
+                <p class="mb-0" th:text="${exam.description}">توضیحات آزمون</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-light btn-lg" onclick="showAddQuestionsModal()">
+                    <i class="fas fa-plus-circle"></i> افزودن سوالات
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <i class="fas fa-question-circle fa-2x text-primary mb-2"></i>
+                <h3 class="mb-0" id="totalQuestionsCount" th:text="${exam.totalQuestions}">0</h3>
+                <small class="text-muted">تعداد سوالات</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                <h3 class="mb-0" id="totalScoreSum" th:text="${exam.totalScore}">0</h3>
+                <small class="text-muted">مجموع امتیاز</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                <h3 class="mb-0" th:text="${exam.durationMinutes} + ' دقیقه'">60 دقیقه</h3>
+                <small class="text-muted">مدت آزمون</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <i class="fas fa-calendar fa-2x text-success mb-2"></i>
+                <h3 class="mb-0" th:text="${#temporals.format(exam.examDateTime, 'yyyy/MM/dd')}">1403/10/15</h3>
+                <small class="text-muted">تاریخ برگزاری</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Questions List -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list"></i> لیست سوالات
+                <small class="text-muted">(می‌توانید با کشیدن ترتیب را تغییر دهید)</small>
+            </h5>
+        </div>
+        <div class="card-body">
+            <div id="questionsList">
+                <!-- Questions will be loaded here -->
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display:none;">
+                <i class="fas fa-inbox"></i>
+                <h4>هنوز سوالی اضافه نشده است</h4>
+                <p>برای شروع، روی دکمه "افزودن سوالات" کلیک کنید</p>
+                <button class="btn btn-primary btn-lg" onclick="showAddQuestionsModal()">
+                    <i class="fas fa-plus"></i> افزودن اولین سوال
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Questions Modal -->
+<div class="modal fade" id="addQuestionsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle"></i> افزودن سوالات به آزمون
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">جستجو در بانک سوالات</label>
+                        <input type="text" class="form-control" id="searchInput" placeholder="جستجوی متن سوال...">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">نوع سوال</label>
+                        <select class="form-select" id="typeFilter">
+                            <option value="">همه</option>
+                            <option value="MULTIPLE_CHOICE">چند گزینه‌ای</option>
+                            <option value="DESCRIPTIVE">تشریحی</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">امتیاز پیش‌فرض</label>
+                        <input type="number" class="form-control" id="defaultScore" value="10" min="0" step="0.5">
+                    </div>
+                </div>
+
+                <div id="questionBankList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Question bank items will be loaded here -->
+                </div>
+
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="selectedCount">0</span> سوال انتخاب شده
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> انصراف
+                </button>
+                <button type="button" class="btn btn-primary" onclick="addSelectedQuestions()">
+                    <i class="fas fa-check"></i> افزودن سوالات انتخاب شده
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Score Modal -->
+<div class="modal fade" id="editScoreModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">ویرایش امتیاز سوال</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">امتیاز جدید</label>
+                <input type="number" class="form-control" id="newScore" min="0" step="0.5">
+                <input type="hidden" id="editQuestionId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                <button type="button" class="btn btn-primary" onclick="saveScore()">ذخیره</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script th:inline="javascript">
+    const examId = /*[[${exam.id}]]*/ 0;
+    const courseId = /*[[${courseId}]]*/ 0;
+    const courseCode = /*[[${courseCode}]]*/ 0;
+
+    let examQuestions = [];
+    let questionBank = [];
+    let selectedQuestions = new Set();
+    let sortable = null;
+
+    // Load exam questions on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadExamQuestions();
+        loadQuestionBank();
+    });
+
+    function loadExamQuestions() {
+        fetch(`/api/exams/${examId}/questions`, {
+            credentials: 'same-origin'
+        })
+            .then(response => response.json())
+            .then(questions => {
+                examQuestions = questions;
+                renderQuestions();
+                updateStats();
+            })
+            .catch(error => {
+                console.error('Error loading questions:', error);
+                alert('خطا در بارگذاری سوالات');
+            });
+    }
+
+    function renderQuestions() {
+        const container = document.getElementById('questionsList');
+        const emptyState = document.getElementById('emptyState');
+
+        if (examQuestions.length === 0) {
+            container.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        container.innerHTML = examQuestions.map((q, index) => `
+            <div class="question-card" data-question-id="${q.questionId}" data-order="${q.orderNumber}">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <i class="fas fa-grip-vertical drag-handle"></i>
+                    </div>
+                    <div class="col-auto">
+                        <h3 class="mb-0 text-primary">${index + 1}</h3>
+                    </div>
+                    <div class="col">
+                        <div class="question-text">${q.questionText}</div>
+                        <div class="question-meta">
+                            <span class="badge bg-info me-2">
+                                <i class="fas fa-${q.questionType === 'MULTIPLE_CHOICE' ? 'list' : 'align-left'}"></i>
+                                ${q.questionType === 'MULTIPLE_CHOICE' ? 'چند گزینه‌ای' : 'تشریحی'}
+                            </span>
+                            ${q.hasOptions ? `<span class="text-muted">${q.optionsCount} گزینه</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <span class="score-badge">${q.score} امتیاز</span>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editScore(${q.questionId}, ${q.score})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeQuestion(${q.questionId})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Initialize Sortable for drag and drop
+        if (sortable) sortable.destroy();
+        sortable = Sortable.create(container, {
+            handle: '.drag-handle',
+            animation: 150,
+            onEnd: function(evt) {
+                updateQuestionOrder();
+            }
+        });
+    }
+
+    function updateStats() {
+        const totalQuestions = examQuestions.length;
+        const totalScore = examQuestions.reduce((sum, q) => sum + q.score, 0);
+
+        document.getElementById('totalQuestionsCount').textContent = totalQuestions;
+        document.getElementById('totalScoreSum').textContent = totalScore.toFixed(1);
+    }
+
+    function updateQuestionOrder() {
+        // This would send the new order to the server if needed
+        console.log('Order updated');
+    }
+
+    function loadQuestionBank() {
+        fetch(`/api/questions/get-all/${courseCode}`, {
+            credentials: 'same-origin'
+        })
+            .then(response => response.json())
+            .then(questions => {
+                questionBank = questions;
+                renderQuestionBank();
+            })
+            .catch(error => {
+                console.error('Error loading question bank:', error);
+            });
+    }
+
+    function renderQuestionBank() {
+        const container = document.getElementById('questionBankList');
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const typeFilter = document.getElementById('typeFilter').value;
+
+        const filtered = questionBank.filter(q => {
+            const matchesSearch = q.questionText.toLowerCase().includes(search);
+            const matchesType = !typeFilter || q.questionType === typeFilter;
+            const notInExam = !examQuestions.some(eq => eq.questionId === q.id);
+            return matchesSearch && matchesType && notInExam;
+        });
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted py-4">سوالی یافت نشد</p>';
+            return;
+        }
+
+        container.innerHTML = filtered.map(q => `
+            <div class="question-bank-item ${selectedQuestions.has(q.id) ? 'selected' : ''}"
+                 onclick="toggleQuestion(${q.id})">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" ${selectedQuestions.has(q.id) ? 'checked' : ''}
+                           onchange="event.stopPropagation()">
+                    <label class="form-check-label">
+                        <strong>${q.questionText}</strong>
+                        <br>
+                        <small class="text-muted">
+                            <i class="fas fa-${q.questionType === 'MULTIPLE_CHOICE' ? 'list' : 'align-left'}"></i>
+                            ${q.questionType === 'MULTIPLE_CHOICE' ? 'چند گزینه‌ای' : 'تشریحی'}
+                        </small>
+                    </label>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function toggleQuestion(questionId) {
+        if (selectedQuestions.has(questionId)) {
+            selectedQuestions.delete(questionId);
+        } else {
+            selectedQuestions.add(questionId);
+        }
+        updateSelectedCount();
+        renderQuestionBank();
+    }
+
+    function updateSelectedCount() {
+        document.getElementById('selectedCount').textContent = selectedQuestions.size;
+    }
+
+    function showAddQuestionsModal() {
+        selectedQuestions.clear();
+        updateSelectedCount();
+        loadQuestionBank();
+        new bootstrap.Modal(document.getElementById('addQuestionsModal')).show();
+    }
+
+    function addSelectedQuestions() {
+        if (selectedQuestions.size === 0) {
+            alert('لطفاً حداقل یک سوال انتخاب کنید');
+            return;
+        }
+
+        const defaultScore = parseFloat(document.getElementById('defaultScore').value);
+        const nextOrder = examQuestions.length > 0 ?
+            Math.max(...examQuestions.map(q => q.orderNumber)) + 1 : 1;
+
+        const questionsToAdd = Array.from(selectedQuestions).map((qId, index) => ({
+            questionId: qId,
+            score: defaultScore,
+            orderNumber: nextOrder + index
+        }));
+
+        fetch(`/api/exams/${examId}/questions/batch`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(questionsToAdd)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to add questions');
+                bootstrap.Modal.getInstance(document.getElementById('addQuestionsModal')).hide();
+                loadExamQuestions();
+                alert('سوالات با موفقیت اضافه شدند');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('خطا در افزودن سوالات');
+            });
+    }
+
+    function removeQuestion(questionId) {
+        if (!confirm('آیا از حذف این سوال اطمینان دارید؟')) return;
+
+        fetch(`/api/exams/${examId}/questions/${questionId}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to remove question');
+                loadExamQuestions();
+                alert('سوال با موفقیت حذف شد');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('خطا در حذف سوال');
+            });
+    }
+
+    function editScore(questionId, currentScore) {
+        document.getElementById('editQuestionId').value = questionId;
+        document.getElementById('newScore').value = currentScore;
+        new bootstrap.Modal(document.getElementById('editScoreModal')).show();
+    }
+
+    function saveScore() {
+        const questionId = document.getElementById('editQuestionId').value;
+        const newScore = parseFloat(document.getElementById('newScore').value);
+
+        fetch(`/api/exams/${examId}/questions/${questionId}/score?score=${newScore}`, {
+            method: 'PATCH',
+            credentials: 'same-origin'
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to update score');
+                bootstrap.Modal.getInstance(document.getElementById('editScoreModal')).hide();
+                loadExamQuestions();
+                alert('امتیاز با موفقیت به‌روزرسانی شد');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('خطا در به‌روزرسانی امتیاز');
+            });
+    }
+
+    // Search and filter handlers
+    document.getElementById('searchInput').addEventListener('input', renderQuestionBank);
+    document.getElementById('typeFilter').addEventListener('change', renderQuestionBank);
+</script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آزمون‌های تکمیل شده</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: #f5f5f5;
+        }
+        .exam-result-card {
+            transition: all 0.3s ease;
+            border-right: 5px solid;
+        }
+        .exam-result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .grade-excellent { border-right-color: #28a745; }
+        .grade-good { border-right-color: #17a2b8; }
+        .grade-fair { border-right-color: #ffc107; }
+        .grade-poor { border-right-color: #dc3545; }
+        .grade-pending { border-right-color: #6c757d; }
+        .score-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-weight: bold;
+            margin: 0 auto;
+        }
+        .score-value { font-size: 1.5rem; }
+        .score-label { font-size: 0.75rem; }
+        .stats-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #f8f9fa;
+            border-radius: 20px;
+            margin: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/student/dashboard">
+            <i class="fas fa-arrow-right"></i> بازگشت به داشبورد
+        </a>
+        <span class="navbar-text">
+            <i class="fas fa-user-graduate text-success"></i> پنل دانشجو
+        </span>
+    </div>
+</nav>
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-clipboard-check text-primary"></i>
+                آزمون‌های تکمیل شده
+            </h2>
+            <p class="text-muted mb-0">تاریخچه آزمون‌ها و نتایج شما</p>
+        </div>
+    </div>
+
+    <!-- Statistics Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-file-alt fa-2x text-primary mb-2"></i>
+                    <h3 class="mb-0" th:text="${results != null ? results.size() : 0}">0</h3>
+                    <p class="text-muted mb-0 small">تعداد آزمون‌ها</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                    <h3 class="mb-0" id="averageScore">-</h3>
+                    <p class="text-muted mb-0 small">میانگین نمره</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-trophy fa-2x text-success mb-2"></i>
+                    <h3 class="mb-0" id="bestScore">-</h3>
+                    <p class="text-muted mb-0 small">بهترین نمره</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-percent fa-2x text-info mb-2"></i>
+                    <h3 class="mb-0" id="passRate">-</h3>
+                    <p class="text-muted mb-0 small">درصد قبولی</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exams List -->
+    <div th:if="${results != null and !results.isEmpty()}">
+        <div class="row">
+            <div th:each="result : ${results}" class="col-md-6 col-lg-4 mb-4">
+                <div class="card exam-result-card h-100"
+                     th:classappend="${result.percentage >= 90} ? 'grade-excellent' :
+                                   (${result.percentage >= 75} ? 'grade-good' :
+                                   (${result.percentage >= 60} ? 'grade-fair' :
+                                   (${result.percentage > 0} ? 'grade-poor' : 'grade-pending')))">
+
+                    <div class="card-body">
+                        <!-- Exam Title -->
+                        <h5 class="card-title mb-3" th:text="${result.examTitle}">
+                            عنوان آزمون
+                        </h5>
+
+                        <!-- Score Circle -->
+                        <div th:if="${result.isFullyGraded}"
+                             class="score-circle mb-3"
+                             th:style="${'background: linear-gradient(135deg, ' +
+                                      (result.percentage >= 90 ? '#28a745, #20c997' :
+                                      (result.percentage >= 75 ? '#17a2b8, #3498db' :
+                                      (result.percentage >= 60 ? '#ffc107, #ffb700' : '#dc3545, #e74c3c'))) + '); color: white;'}">
+                            <div class="score-value">
+                                <span th:text="${result.totalScore != null ? #numbers.formatDecimal(result.totalScore, 1, 1) : '؟'}">15</span>
+                                <span>/</span>
+                                <span th:text="${#numbers.formatDecimal(result.maxScore, 1, 1)}">20</span>
+                            </div>
+                            <div class="score-label">
+                                <span th:text="${#numbers.formatDecimal(result.percentage, 1, 0)}">75</span>%
+                            </div>
+                        </div>
+
+                        <div th:if="${!result.isFullyGraded}"
+                             class="score-circle mb-3"
+                             style="background: linear-gradient(135deg, #6c757d, #495057); color: white;">
+                            <div class="score-value">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div class="score-label">در حال نمره‌دهی</div>
+                        </div>
+
+                        <!-- Statistics Badges -->
+                        <div class="mb-3">
+                            <div class="stats-badge">
+                                <i class="fas fa-question-circle text-primary"></i>
+                                <span><strong th:text="${result.answeredQuestions}">8</strong> / <span th:text="${result.totalQuestions}">10</span> سوال</span>
+                            </div>
+                            <div class="stats-badge" th:if="${result.correctAnswers != null}">
+                                <i class="fas fa-check-circle text-success"></i>
+                                <span><strong th:text="${result.correctAnswers}">6</strong> صحیح</span>
+                            </div>
+                        </div>
+
+                        <!-- Date & Time -->
+                        <div class="mb-3 text-muted small">
+                            <div class="mb-1">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span th:text="${#temporals.format(result.startTime, 'yyyy/MM/dd')}">1403/10/15</span>
+                            </div>
+                            <div>
+                                <i class="fas fa-clock"></i>
+                                <span th:text="${result.durationMinutes}">45</span> دقیقه
+                            </div>
+                        </div>
+
+                        <!-- Grading Status -->
+                        <div class="mb-3">
+                            <span th:if="${result.isFullyGraded}"
+                                  class="badge bg-success">
+                                <i class="fas fa-check-double"></i> نمره‌دهی کامل
+                            </span>
+                            <span th:if="${!result.isFullyGraded}"
+                                  class="badge bg-warning">
+                                <i class="fas fa-hourglass-half"></i>
+                                <span th:text="${result.ungradedQuestions}">2</span> سوال بدون نمره
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-transparent">
+                        <a th:href="@{/student/exam-result/{id}(id=${result.studentExamId})}"
+                           class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-eye"></i> مشاهده جزئیات
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${results == null or results.isEmpty()}" class="text-center py-5">
+        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">هیچ آزمونی را تکمیل نکرده‌اید</h4>
+        <p class="text-muted">بعد از شرکت در آزمون‌ها، نتایج شما در اینجا نمایش داده می‌شود.</p>
+        <a href="/student/courses" class="btn btn-primary mt-3">
+            <i class="fas fa-book"></i> مشاهده دوره‌ها
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const results = /*[[${results}]]*/ [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (results && results.length > 0) {
+            calculateStatistics();
+        }
+    });
+
+    function calculateStatistics() {
+        const gradedResults = results.filter(r => r.isFullyGraded && r.percentage != null);
+
+        if (gradedResults.length === 0) {
+            document.getElementById('averageScore').textContent = '-';
+            document.getElementById('bestScore').textContent = '-';
+            document.getElementById('passRate').textContent = '-';
+            return;
+        }
+
+        const avgPercentage = gradedResults.reduce((sum, r) => sum + r.percentage, 0) / gradedResults.length;
+        document.getElementById('averageScore').textContent = avgPercentage.toFixed(1) + '%';
+
+        const bestPercentage = Math.max(...gradedResults.map(r => r.percentage));
+        document.getElementById('bestScore').textContent = bestPercentage.toFixed(1) + '%';
+
+        const passedCount = gradedResults.filter(r => r.percentage >= 60).length;
+        const passRate = (passedCount / gradedResults.length) * 100;
+        document.getElementById('passRate').textContent = passRate.toFixed(0) + '%';
+    }
+</script>
+</body>
+</html>

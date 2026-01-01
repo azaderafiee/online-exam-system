@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نتیجه آزمون</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: #f5f5f5;
+        }
+        .result-card {
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .result-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .score-display {
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+        .score-percentage {
+            font-size: 1.5rem;
+            opacity: 0.9;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #495057;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        .grade-status {
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+        .status-complete {
+            background-color: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+        .answer-detail-card {
+            border-right: 5px solid;
+            transition: all 0.3s;
+        }
+        .answer-correct {
+            border-right-color: #28a745;
+            background-color: #f0f9f4;
+        }
+        .answer-incorrect {
+            border-right-color: #dc3545;
+            background-color: #fef5f5;
+        }
+        .answer-ungraded {
+            border-right-color: #ffc107;
+            background-color: #fffbf0;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/student/courses">
+            <i class="fas fa-arrow-right"></i> بازگشت به دوره‌ها
+        </a>
+        <span class="navbar-text">
+            <i class="fas fa-user-graduate text-success"></i> پنل دانشجو
+        </span>
+    </div>
+</nav>
+
+<div class="container py-4">
+    <!-- Main Result Card -->
+    <div class="result-card mb-4">
+        <div class="result-header">
+            <h2 th:text="${result.examTitle}">عنوان آزمون</h2>
+            <div class="score-display">
+                <span th:text="${result.totalScore != null ? #numbers.formatDecimal(result.totalScore, 1, 2) : '؟'}">15</span>
+                <span class="mx-2">/</span>
+                <span th:text="${#numbers.formatDecimal(result.maxScore, 1, 2)}">20</span>
+            </div>
+            <div class="score-percentage" th:if="${result.percentage != null}">
+                درصد: <span th:text="${#numbers.formatDecimal(result.percentage, 1, 2)}">75</span>%
+            </div>
+        </div>
+    </div>
+
+    <!-- Grading Status -->
+    <div th:if="${!result.isFullyGraded}" class="grade-status status-pending">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-hourglass-half fa-2x me-3"></i>
+            <div>
+                <h5 class="mb-1">
+                    <i class="fas fa-info-circle"></i> نمره‌دهی در حال انجام
+                </h5>
+                <p class="mb-0">
+                    استاد هنوز به <strong th:text="${result.ungradedQuestions}">3</strong> سوال تشریحی نمره نداده است.
+                    نمره نهایی شما ممکن است تغییر کند.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${result.isFullyGraded}" class="grade-status status-complete">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-check-circle fa-2x me-3"></i>
+            <div>
+                <h5 class="mb-1">
+                    <i class="fas fa-clipboard-check"></i> نمره‌دهی کامل شده
+                </h5>
+                <p class="mb-0">
+                    تمام سوالات نمره‌دهی شده‌اند. این نمره نهایی شما است.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-bar"></i> آمار آزمون
+            </h5>
+        </div>
+        <div class="stats-grid">
+            <!-- Total Questions -->
+            <div class="stat-card">
+                <div class="stat-icon text-primary">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+                <div class="stat-value" th:text="${result.totalQuestions}">10</div>
+                <div class="stat-label">تعداد سوالات</div>
+            </div>
+
+            <!-- Answered Questions -->
+            <div class="stat-card">
+                <div class="stat-icon text-info">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <div class="stat-value" th:text="${result.answeredQuestions}">8</div>
+                <div class="stat-label">پاسخ داده شده</div>
+            </div>
+
+            <!-- Correct Answers -->
+            <div class="stat-card" th:if="${result.correctAnswers != null}">
+                <div class="stat-icon text-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-value" th:text="${result.correctAnswers}">6</div>
+                <div class="stat-label">پاسخ صحیح</div>
+            </div>
+
+            <!-- Duration -->
+            <div class="stat-card">
+                <div class="stat-icon text-warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-value" th:text="${result.durationMinutes}">45</div>
+                <div class="stat-label">مدت زمان (دقیقه)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Information -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">
+                        <i class="fas fa-play-circle"></i> زمان شروع
+                    </h6>
+                    <p class="card-text h5" th:text="${#temporals.format(result.startTime, 'yyyy/MM/dd - HH:mm:ss')}">
+                        1403/10/15 - 14:00:00
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">
+                        <i class="fas fa-stop-circle"></i> زمان پایان
+                    </h6>
+                    <p class="card-text h5" th:text="${#temporals.format(result.endTime, 'yyyy/MM/dd - HH:mm:ss')}">
+                        1403/10/15 - 14:45:00
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Answer Details (if available) -->
+    <div th:if="${result.answerDetails != null and !result.answerDetails.isEmpty()}" class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list-alt"></i> جزئیات پاسخ‌ها
+            </h5>
+        </div>
+        <div class="card-body">
+            <div th:each="answer, iter : ${result.answerDetails}"
+                 class="card mb-3 answer-detail-card"
+                 th:classappend="${answer.isCorrect == true} ? 'answer-correct' : (${answer.isCorrect == false} ? 'answer-incorrect' : 'answer-ungraded')">
+
+                <div class="card-body">
+                    <!-- Question Header -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h6 class="mb-0">
+                            <span class="badge bg-secondary me-2" th:text="${iter.index + 1}">1</span>
+                            <span th:text="${answer.questionTitle}">عنوان سوال</span>
+                        </h6>
+                        <div class="text-end">
+                            <span class="badge"
+                                  th:classappend="${answer.isCorrect == true} ? 'bg-success' : (${answer.isCorrect == false} ? 'bg-danger' : 'bg-warning')">
+                                <span th:if="${answer.score != null}" th:text="${answer.score}">2</span>
+                                <span th:if="${answer.score == null}">؟</span>
+                                / <span th:text="${answer.maxScore}">2</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Question Text -->
+                    <div class="alert alert-light mb-3">
+                        <div th:utext="${answer.questionText}">متن سوال</div>
+                    </div>
+
+                    <!-- Student Answer (Multiple Choice) -->
+                    <div th:if="${answer.questionType.name() == 'MULTIPLE_CHOICE'}">
+                        <strong>پاسخ شما:</strong>
+                        <div th:if="${answer.selectedOption != null}"
+                             class="mt-2 p-3 rounded"
+                             th:classappend="${answer.isCorrect} ? 'bg-success-subtle' : 'bg-danger-subtle'">
+                            <span th:text="${answer.selectedOption}">گزینه انتخابی</span>
+                            <i th:if="${answer.isCorrect}" class="fas fa-check-circle text-success ms-2"></i>
+                            <i th:if="${answer.isCorrect != null and !answer.isCorrect}" class="fas fa-times-circle text-danger ms-2"></i>
+                        </div>
+                        <div th:if="${answer.selectedOption == null}" class="text-muted mt-2">
+                            پاسخی داده نشده است
+                        </div>
+                    </div>
+
+                    <!-- Student Answer (Descriptive) -->
+                    <div th:if="${answer.questionType.name() == 'DESCRIPTIVE'}">
+                        <strong>پاسخ شما:</strong>
+                        <div th:if="${answer.textAnswer != null}"
+                             class="mt-2 p-3 rounded bg-light border">
+                            <p th:text="${answer.textAnswer}" style="white-space: pre-wrap;">متن پاسخ</p>
+                        </div>
+                        <div th:if="${answer.textAnswer == null}" class="text-muted mt-2">
+                            پاسخی داده نشده است
+                        </div>
+
+                        <!-- Instructor Comment (if exists) -->
+                        <div th:if="${answer.instructorComment != null}" class="mt-3">
+                            <strong class="text-primary">
+                                <i class="fas fa-comment"></i> نظر استاد:
+                            </strong>
+                            <div class="alert alert-info mt-2">
+                                <span th:text="${answer.instructorComment}">نظر استاد</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grading Status -->
+                    <div th:if="${!answer.isGraded}" class="mt-3">
+                        <span class="badge bg-warning">
+                            <i class="fas fa-hourglass-half"></i> در انتظار نمره‌دهی
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between flex-wrap gap-2">
+                <div>
+                    <a href="/student/courses" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-right"></i> بازگشت به دوره‌ها
+                    </a>
+                    <a href="/student/completed-exams" class="btn btn-outline-secondary">
+                        <i class="fas fa-list"></i> آزمون‌های تکمیل شده
+                    </a>
+                </div>
+                <button onclick="window.print()" class="btn btn-outline-info">
+                    <i class="fas fa-print"></i> چاپ نتیجه
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

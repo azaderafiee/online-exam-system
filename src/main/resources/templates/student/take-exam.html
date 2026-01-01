@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${examData.examTitle}">شرکت در آزمون</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: #f5f5f5;
+        }
+        .exam-timer {
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            z-index: 1000;
+            background: #fff;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .timer-display {
+            font-size: 2rem;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        .timer-warning { color: #ff9800; }
+        .timer-danger {
+            color: #dc3545;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .question-card {
+            border-right: 5px solid #007bff;
+            transition: all 0.3s ease;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .question-navigation {
+            position: sticky;
+            top: 70px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 2px solid #dee2e6;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-btn:hover { transform: scale(1.1); }
+        .nav-btn.answered {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        .nav-btn.current {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .option-card {
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .option-card:hover {
+            background-color: #f8f9fa;
+            border-color: #007bff;
+        }
+        .option-card.selected {
+            background-color: #e7f3ff;
+            border-color: #007bff;
+            border-width: 3px;
+        }
+        .option-radio {
+            width: 20px;
+            height: 20px;
+            margin-left: 10px;
+        }
+        .descriptive-answer {
+            min-height: 200px;
+            font-family: 'Vazir', sans-serif;
+        }
+        .word-counter {
+            text-align: left;
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        .word-counter.warning { color: #ff9800; }
+        .word-counter.danger { color: #dc3545; }
+        .progress-bar-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 10px 20px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+<!-- Timer Display -->
+<div class="exam-timer" id="timerDisplay">
+    <div class="text-center">
+        <div class="small text-muted mb-1">
+            <i class="fas fa-clock"></i> زمان باقی‌مانده
+        </div>
+        <div class="timer-display" id="timerText">00:00:00</div>
+    </div>
+</div>
+
+<nav class="navbar navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+        <span class="navbar-brand">
+            <i class="fas fa-clipboard-list"></i>
+            <span th:text="${examData.examTitle}">آزمون</span>
+        </span>
+    </div>
+</nav>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Question Navigation Sidebar -->
+        <div class="col-md-3 order-md-2">
+            <div class="question-navigation">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-list"></i> فهرست سوالات
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <small class="text-muted">
+                                پاسخ داده شده:
+                                <strong id="answeredCount">0</strong> از
+                                <strong th:text="${examData.totalQuestions}">10</strong>
+                            </small>
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-center" id="questionNav">
+                            <!-- Navigation buttons will be generated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-info-circle"></i> اطلاعات آزمون
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">
+                            <strong>تعداد سوالات:</strong>
+                            <span th:text="${examData.totalQuestions}">10</span>
+                        </p>
+                        <p class="mb-2">
+                            <strong>نمره کل:</strong>
+                            <span th:text="${examData.maxScore}">20</span>
+                        </p>
+                        <p class="mb-0">
+                            <strong>مدت زمان:</strong>
+                            <span th:text="${examData.durationMinutes}">60</span> دقیقه
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions Container -->
+        <div class="col-md-9 order-md-1">
+            <!-- Exam Header -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0" th:text="${examData.examTitle}">عنوان آزمون</h4>
+                </div>
+                <div class="card-body" th:if="${examData.examDescription}">
+                    <p class="text-muted mb-0" th:text="${examData.examDescription}">توضیحات آزمون</p>
+                </div>
+            </div>
+
+            <!-- Questions -->
+            <div id="questionsContainer">
+                <div th:each="question, iter : ${examData.questions}"
+                     class="question-card card mb-4"
+                     th:attr="data-question-index=${iter.index}"
+                     style="display: none;">
+
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <span class="badge bg-primary me-2" th:text="${iter.index + 1}">1</span>
+                                <span th:text="${question.title}">عنوان سوال</span>
+                            </h5>
+                            <span class="badge bg-info">
+                                <i class="fas fa-star"></i>
+                                <span th:text="${question.score}">2</span> نمره
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <!-- Question Text -->
+                        <div class="alert alert-light mb-4">
+                            <div class="question-text" th:utext="${question.questionText}">
+                                متن سوال
+                            </div>
+                        </div>
+
+                        <!-- Multiple Choice Options -->
+                        <div th:if="${question.questionType.name() == 'MULTIPLE_CHOICE'}"
+                             class="options-container">
+                            <div th:each="option, optIter : ${question.options}"
+                                 class="option-card"
+                                 th:attr="data-option-id=${option.id}"
+                                 onclick="selectOption(this)">
+                                <div class="d-flex align-items-center">
+                                    <input type="radio"
+                                           class="option-radio"
+                                           th:name="'question_' + ${question.examQuestionId}"
+                                           th:id="'option_' + ${option.id}"
+                                           th:value="${option.id}"
+                                           th:checked="${question.previousAnswer != null and question.previousAnswer.selectedOptionId == option.id}">
+                                    <label class="flex-grow-1 mb-0 cursor-pointer"
+                                           th:for="'option_' + ${option.id}"
+                                           th:text="${option.optionText}">
+                                        گزینه
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Descriptive Answer -->
+                        <div th:if="${question.questionType.name() == 'DESCRIPTIVE'}"
+                             class="descriptive-container">
+                            <textarea class="form-control descriptive-answer"
+                                      th:id="'answer_' + ${question.examQuestionId}"
+                                      th:attr="data-max-words=${question.maxWords}"
+                                      placeholder="پاسخ خود را اینجا بنویسید..."
+                                      th:text="${question.previousAnswer != null ? question.previousAnswer.textAnswer : ''}"></textarea>
+
+                            <div th:if="${question.maxWords != null}"
+                                 class="word-counter mt-2"
+                                 th:attr="data-counter-for=${'answer_' + question.examQuestionId}">
+                                تعداد کلمات: <span class="word-count">0</span> / <span th:text="${question.maxWords}">200</span>
+                            </div>
+                        </div>
+
+                        <!-- Hidden fields for data -->
+                        <input type="hidden" class="exam-question-id" th:value="${question.examQuestionId}">
+                        <input type="hidden" class="question-type" th:value="${question.questionType}">
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="previousQuestion()"
+                                    th:disabled="${iter.index == 0}">
+                                <i class="fas fa-arrow-right"></i> سوال قبل
+                            </button>
+
+                            <button type="button" class="btn btn-primary" onclick="nextQuestion()"
+                                    th:if="${!iter.last}">
+                                سوال بعد <i class="fas fa-arrow-left"></i>
+                            </button>
+
+                            <button type="button" class="btn btn-success" onclick="showSubmitConfirmation()"
+                                    th:if="${iter.last}">
+                                <i class="fas fa-check"></i> اتمام و ارسال آزمون
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="text-center py-5" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">در حال بارگذاری...</span>
+                </div>
+                <p class="mt-3 text-muted">در حال ذخیره پاسخ‌ها...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Bar -->
+<div class="progress-bar-container">
+    <div class="progress" style="height: 25px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated"
+             role="progressbar"
+             id="progressBar"
+             style="width: 0%;">
+            <span id="progressText">0%</span>
+        </div>
+    </div>
+</div>
+
+<!-- Submit Confirmation Modal -->
+<div class="modal fade" id="submitConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    تأیید ارسال آزمون
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <p class="mb-2">
+                        <strong>سوالات پاسخ داده شده:</strong>
+                        <span id="finalAnsweredCount">0</span> از
+                        <span th:text="${examData.totalQuestions}">10</span>
+                    </p>
+                    <p class="mb-0">
+                        <strong>زمان باقی‌مانده:</strong>
+                        <span id="finalTimeRemaining">00:00</span>
+                    </p>
+                </div>
+                <p class="text-danger mb-0">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>توجه:</strong> بعد از ارسال آزمون، امکان تغییر پاسخ‌ها وجود ندارد!
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> انصراف
+                </button>
+                <button type="button" class="btn btn-success" onclick="submitExam()">
+                    <i class="fas fa-check"></i> بله، ارسال کن!
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const examData = /*[[${examData}]]*/ {};
+    const studentExamId = /*[[${examData.studentExamId}]]*/ 0;
+    const totalQuestions = /*[[${examData.totalQuestions}]]*/ 0;
+    const initialRemainingSeconds = /*[[${examData.remainingSeconds}]]*/ 0;
+
+    let currentQuestionIndex = 0;
+    let remainingSeconds = initialRemainingSeconds;
+    let timerInterval;
+    let autoSaveInterval;
+    let answers = {};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeExam();
+        startTimer();
+        startAutoSave();
+        loadPreviousAnswers();
+    });
+
+    function initializeExam() {
+        generateNavigationButtons();
+        showQuestion(0);
+        updateProgress();
+
+        document.querySelectorAll('.descriptive-answer').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                updateWordCount(this);
+                markQuestionAsAnswered(getCurrentQuestionIndex());
+            });
+        });
+    }
+
+    function generateNavigationButtons() {
+        const navContainer = document.getElementById('questionNav');
+        for (let i = 0; i < totalQuestions; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'nav-btn';
+            btn.textContent = i + 1;
+            btn.onclick = () => showQuestion(i);
+            btn.setAttribute('data-question-index', i);
+            navContainer.appendChild(btn);
+        }
+    }
+
+    function showQuestion(index) {
+        saveCurrentAnswer();
+
+        document.querySelectorAll('.question-card').forEach(card => {
+            card.style.display = 'none';
+        });
+
+        const questionCard = document.querySelector(`[data-question-index="${index}"]`);
+        if (questionCard) {
+            questionCard.style.display = 'block';
+            currentQuestionIndex = index;
+            updateNavigationState();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function updateNavigationState() {
+        document.querySelectorAll('.nav-btn').forEach((btn, index) => {
+            btn.classList.remove('current');
+            if (index === currentQuestionIndex) {
+                btn.classList.add('current');
+            }
+        });
+    }
+
+    function previousQuestion() {
+        if (currentQuestionIndex > 0) {
+            showQuestion(currentQuestionIndex - 1);
+        }
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < totalQuestions - 1) {
+            showQuestion(currentQuestionIndex + 1);
+        }
+    }
+
+    function selectOption(optionCard) {
+        const radio = optionCard.querySelector('input[type="radio"]');
+        radio.checked = true;
+
+        optionCard.parentElement.querySelectorAll('.option-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        optionCard.classList.add('selected');
+
+        markQuestionAsAnswered(currentQuestionIndex);
+        saveCurrentAnswer();
+    }
+
+    function markQuestionAsAnswered(index) {
+        const navBtn = document.querySelector(`.nav-btn[data-question-index="${index}"]`);
+        if (navBtn && !navBtn.classList.contains('answered')) {
+            navBtn.classList.add('answered');
+            updateAnsweredCount();
+            updateProgress();
+        }
+    }
+
+    function updateAnsweredCount() {
+        const count = document.querySelectorAll('.nav-btn.answered').length;
+        document.getElementById('answeredCount').textContent = count;
+        document.getElementById('finalAnsweredCount').textContent = count;
+    }
+
+    function updateProgress() {
+        const answered = document.querySelectorAll('.nav-btn.answered').length;
+        const percentage = (answered / totalQuestions) * 100;
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = Math.round(percentage) + '%';
+    }
+
+    function getCurrentQuestionIndex() {
+        return currentQuestionIndex;
+    }
+
+    function saveCurrentAnswer() {
+        const questionCard = document.querySelector(`[data-question-index="${currentQuestionIndex}"]`);
+        if (!questionCard) return;
+
+        const examQuestionId = questionCard.querySelector('.exam-question-id').value;
+        const questionType = questionCard.querySelector('.question-type').value;
+
+        let answerData = {
+            examQuestionId: parseInt(examQuestionId)
+        };
+
+        if (questionType === 'MULTIPLE_CHOICE') {
+            const selectedOption = questionCard.querySelector('input[type="radio"]:checked');
+            if (selectedOption) {
+                answerData.selectedOptionId = parseInt(selectedOption.value);
+            }
+        } else if (questionType === 'DESCRIPTIVE') {
+            const textarea = questionCard.querySelector('.descriptive-answer');
+            if (textarea && textarea.value.trim()) {
+                answerData.textAnswer = textarea.value.trim();
+            }
+        }
+
+        if (answerData.selectedOptionId || answerData.textAnswer) {
+            answers[examQuestionId] = answerData;
+        }
+    }
+
+    function loadPreviousAnswers() {
+        examData.questions.forEach((question, index) => {
+            if (question.previousAnswer) {
+                markQuestionAsAnswered(index);
+
+                if (question.questionType === 'MULTIPLE_CHOICE' && question.previousAnswer.selectedOptionId) {
+                    const optionCard = document.querySelector(`[data-option-id="${question.previousAnswer.selectedOptionId}"]`);
+                    if (optionCard) {
+                        optionCard.classList.add('selected');
+                    }
+                }
+
+                if (question.questionType === 'DESCRIPTIVE' && question.previousAnswer.textAnswer) {
+                    const textarea = document.getElementById(`answer_${question.examQuestionId}`);
+                    if (textarea) {
+                        updateWordCount(textarea);
+                    }
+                }
+            }
+        });
+        updateAnsweredCount();
+        updateProgress();
+    }
+
+    function updateWordCount(textarea) {
+        const maxWords = parseInt(textarea.getAttribute('data-max-words'));
+        if (!maxWords) return;
+
+        const counterDiv = document.querySelector(`[data-counter-for="${textarea.id}"]`);
+        if (!counterDiv) return;
+
+        const words = textarea.value.trim().split(/\s+/).filter(word => word.length > 0);
+        const wordCount = words.length;
+
+        const countSpan = counterDiv.querySelector('.word-count');
+        countSpan.textContent = wordCount;
+
+        counterDiv.classList.remove('warning', 'danger');
+        if (wordCount > maxWords) {
+            counterDiv.classList.add('danger');
+        } else if (wordCount > maxWords * 0.8) {
+            counterDiv.classList.add('warning');
+        }
+    }
+
+    function startTimer() {
+        updateTimerDisplay();
+
+        timerInterval = setInterval(() => {
+            remainingSeconds--;
+            updateTimerDisplay();
+
+            if (remainingSeconds <= 0) {
+                clearInterval(timerInterval);
+                autoSubmitExam();
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const hours = Math.floor(remainingSeconds / 3600);
+        const minutes = Math.floor((remainingSeconds % 3600) / 60);
+        const seconds = remainingSeconds % 60;
+
+        const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+        const timerText = document.getElementById('timerText');
+        timerText.textContent = timeString;
+
+        timerText.classList.remove('timer-warning', 'timer-danger');
+        if (remainingSeconds < 300) {
+            timerText.classList.add('timer-danger');
+        } else if (remainingSeconds < 600) {
+            timerText.classList.add('timer-warning');
+        }
+
+        document.getElementById('finalTimeRemaining').textContent =
+            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function startAutoSave() {
+        autoSaveInterval = setInterval(() => {
+            saveAllAnswers();
+        }, 30000);
+    }
+
+    function saveAllAnswers() {
+        saveCurrentAnswer();
+
+        const answersList = Object.values(answers);
+        if (answersList.length === 0) return;
+
+
+        fetch(`/api/student/student-exams/${studentExamId}/answers/batch`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                [header]: token
+            },
+            body: JSON.stringify(answersList)
+        })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Answers auto-saved successfully');
+                }
+            })
+            .catch(error => {
+                console.error('Error auto-saving answers:', error);
+            });
+    }
+
+    function showSubmitConfirmation() {
+        saveCurrentAnswer();
+        const modal = new bootstrap.Modal(document.getElementById('submitConfirmModal'));
+        modal.show();
+    }
+
+    function submitExam() {
+        saveCurrentAnswer();
+
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const questionsContainer = document.getElementById('questionsContainer');
+
+        loadingIndicator.style.display = 'block';
+        questionsContainer.style.display = 'none';
+
+        bootstrap.Modal.getInstance(document.getElementById('submitConfirmModal')).hide();
+
+        clearInterval(timerInterval);
+        clearInterval(autoSaveInterval);
+
+        const answersList = Object.values(answers);
+
+
+        fetch(`/api/student/student-exams/${studentExamId}/answers/batch`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                [header]: token
+            },
+            body: JSON.stringify(answersList)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to save answers');
+                return fetch(`/api/student/student-exams/${studentExamId}/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [header]: token
+                    }
+                });
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to complete exam');
+                return response.json();
+            })
+            .then(result => {
+                window.location.href = `/student/exam-result/${studentExamId}`;
+            })
+            .catch(error => {
+                alert('خطا در ارسال آزمون: ' + error.message);
+                loadingIndicator.style.display = 'none';
+                questionsContainer.style.display = 'block';
+            });
+    }
+
+    function autoSubmitExam() {
+        alert('زمان آزمون به پایان رسید! آزمون به صورت خودکار ارسال می‌شود.');
+        submitExam();
+    }
+
+    window.addEventListener('beforeunload', function(e) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+    });
+</script>
+</body>
+</html>
